@@ -1,0 +1,3 @@
+/home/adsultimate/Osmium/build/CMakeFiles/physics.dir
+/home/adsultimate/Osmium/build/CMakeFiles/edit_cache.dir
+/home/adsultimate/Osmium/build/CMakeFiles/rebuild_cache.dir
