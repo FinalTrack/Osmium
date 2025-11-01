@@ -10,7 +10,7 @@ A fast 2D physics engine in C++ featuring rigid body dynamics, SAT-based collisi
 
 ### Prerequisites
 
-* A C++17 compatible compiler (e.g., GCC, Clang, MSVC).
+* A C++20 compatible compiler (e.g., GCC, Clang, MSVC).
 * CMake (for building the project).
 * GLFW (for windowing and OpenGL context).
 * OpenGL (typically available with your graphics drivers).
