@@ -1,143 +1,120 @@
 #pragma once
-
 #include <thread>
-#include <functional>
-#include <mutex>
-#include <condition_variable>
+#include <vector>
 #include <atomic>
-#include <cassert>
-#include "World.hpp"
+#include <barrier>
 #include <chrono>
-#include <iostream>
-
-struct Barrier
-{
-    std::mutex mtx;
-    std::condition_variable cv;
-    int cnt;
-    int threshold;
-    int generation;
-
-    Barrier(int thresh)
-    {
-        threshold = thresh;
-        cnt = 0;
-        generation = 0;
-    }
-
-    void wait()
-    {
-        std::unique_lock<std::mutex> lk(mtx);
-        int gen = generation;
-        if(++cnt == threshold)
-        {
-            generation ^= 1;
-            cnt = 0;
-            cv.notify_all();
-        }
-        else
-            cv.wait(lk, [&]{ return gen != generation; });
-    }
-};
+#include "World.hpp"
 
 struct Engine
 {
-    Barrier start, done;
-    int threadCnt;
     World* world;
+    int nThreads;
+    std::atomic<bool> stopFlag{false};
 
-    std::vector<std::vector<std::array<int, 3>>> tasks;
-    std::vector<std::vector<std::pair<int, int>>> results;
+    enum class TaskType { Gather, SAT };
+    struct Task { TaskType type; int t, a, b; };
+
     std::vector<std::thread> workers;
-    std::atomic<bool> stopFlag;
+    std::vector<std::vector<std::pair<int,int>>> results;
+    std::vector<std::vector<Task>> tasks;
 
-    Engine(int N, World* w) : start(N+1), done(N+1), threadCnt(N) , world(w), stopFlag(false)
+    std::barrier<> startBarrier;
+    std::barrier<> finishBarrier;
+
+    Engine(int threadCount, World* w)
+        : world(w),
+          nThreads(threadCount),
+          startBarrier(nThreads + 1),
+          finishBarrier(nThreads + 1)
     {
-        workers.reserve(N);
-        tasks.resize(N);
-        results.resize(N);
-        for (int i = 0; i < N; ++i) {
-            workers.emplace_back([this,i]{
-                while (true) {
-                    start.wait();
-                    if(stopFlag)
-                        break;
-                    for(auto [t, u, v]: tasks[i])
-                    {
-                        if(t == -1)
-                            world->getNeighbors(u, results[i]);
-                        else
-                        world->collisionData[t] = Body::performSAT(world->bodies[u], world->bodies[v]);
-                    }
-                    done.wait();
-                }
-            });
-        }
+        tasks.resize(nThreads);
+        results.resize(nThreads);
+        for (int i = 0; i < nThreads; ++i)
+            workers.emplace_back([this, i]{ workerLoop(i); });
     }
 
-    void updateStep(float DT, float& tu, float& tc, float& tr)
+    ~Engine() {
+        stopFlag = true;
+        startBarrier.arrive_and_wait();
+        finishBarrier.arrive_and_wait();
+        for (auto& t : workers) if (t.joinable()) t.join();
+    }
+
+    void updateStep(float dt, float& tu, float& tc, float& tr)
     {
-        auto t0 = std::chrono::high_resolution_clock::now();
-        world->updateVelocities(DT);
-        world->updatePositions(DT);
+        using clock = std::chrono::high_resolution_clock;
+        auto t0 = clock::now();
+
+        world->updateVelocities(dt);
+        world->updatePositions(dt);
         world->initGrid();
-        auto t1 = std::chrono::high_resolution_clock::now();
+        auto t1 = clock::now();
+
+        // Phase 1: Broadphase
+        clearTasks();
+        int cur = 0;
+        for(int id = 0; id < world->allocated; id++)
+            if (world->bodies[id].active)
+                tasks[cur++ % nThreads].push_back({TaskType::Gather, -1, id, -1});
+
+        startBarrier.arrive_and_wait();
+        finishBarrier.arrive_and_wait();
 
         world->collisionPairs.clear();
-        for(int i = 0; i < threadCnt; i++)
-            tasks[i].clear();
-        for(int i = 0; i < threadCnt; i++)
-           results[i].clear();
-        int curr = 0;
-        for(int id = 0; id < world->allocated; id++)
+        for (auto& r : results) 
+            world->collisionPairs.insert(world->collisionPairs.end(), r.begin(), r.end());
+        auto t2 = clock::now();
+
+        // Phase 2: Narrowphase
+        int N = (int)world->collisionPairs.size();
+        world->collisionData.resize(N);
+        clearTasks();
+        for (int i = 0; i < N; ++i)
         {
-            if(world->bodies[id].active)
-            {
-                tasks[curr].push_back({-1, id, 0});
-                curr = (curr + 1) % threadCnt;
-            }
+            auto [a,b] = world->collisionPairs[i];
+            tasks[i % nThreads].push_back({TaskType::SAT, i, a, b});
         }
 
-        start.wait();
-        done.wait();
-
-        for(int i = 0; i < threadCnt; i++)
-        {
-            for(auto [id1, id2]: results[i])
-                world->collisionPairs.emplace_back(id1, id2);
-        }
-
-        auto t2 = std::chrono::high_resolution_clock::now();
-
-        int sz = world->collisionPairs.size();
-        world->collisionData.resize(sz);
-        for(int i = 0; i < threadCnt; i++)
-            tasks[i].clear();
-
-        curr = 0;
-        for(int i = 0; i < sz; ++i)
-        {
-            auto [id1, id2] = world->collisionPairs[i];
-            tasks[curr].push_back({i, id1, id2});
-            curr = (curr + 1) % threadCnt;
-        }
-
-        start.wait();
-        done.wait();
+        startBarrier.arrive_and_wait();
+        finishBarrier.arrive_and_wait();
 
         world->resolveCollisions();
         world->applyCorrections();
         world->resetGrid();
-        auto t3 = std::chrono::high_resolution_clock::now();
+        auto t3 = clock::now();
 
         tu = std::chrono::duration<float, std::micro>(t1 - t0).count();
         tc = std::chrono::duration<float, std::micro>(t2 - t1).count();
         tr = std::chrono::duration<float, std::micro>(t3 - t2).count();
     }
 
-    ~Engine() {
-        stopFlag = true;
-        start.wait();
-        for (auto &t : workers) t.join();
+    void workerLoop(int i)
+    {
+        auto& myTasks = tasks[i];
+        auto& myResults = results[i];
+        while (!stopFlag)
+        {
+            startBarrier.arrive_and_wait();
+            // After main thread reaches start barrier, we can execute the tasks in parallel
+            if (stopFlag) { finishBarrier.arrive_and_wait(); break; }
+
+            myResults.clear();
+            for (auto& t : myTasks)
+            {
+                if (t.type == TaskType::Gather)
+                    world->getNeighbors(t.a, myResults);
+                else
+                    world->collisionData[t.t] = Body::performSAT(world->bodies[t.a], world->bodies[t.b]);
+            }
+            // Signal to the main thread that this worker thread has completed its task
+            finishBarrier.arrive_and_wait();
+        }
+    }
+
+    void clearTasks()
+    {
+        for (auto& t : tasks) t.clear();
+        for (auto& r : results) r.clear();
     }
 };

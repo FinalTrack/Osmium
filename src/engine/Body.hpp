@@ -7,6 +7,11 @@
 #include <cmath>
 #include <array>
 
+
+// collide: number of contact points (0 means no collision)
+// normal: collision normal pointing from body A to B
+// depth: penetration depth along normal
+// contact: up to two contact points
 struct CollisionResult 
 {
     int collide;
@@ -15,6 +20,8 @@ struct CollisionResult
     std::array<Vec2, 2> contact;
 };
 
+// Body: rigid-body state and collision helpers.
+// meshID == 1000 is treated as a circle using meshdata::RADIUS (special case).
 struct Body
 {
     Vec2 position;
@@ -56,6 +63,7 @@ struct Body
         kFriction = 0.2;
     }
 
+    // Fills transformed with mesh vertex positions rotated by theta, scaled and translated to position.
     void transform()
     {
         transformed.clear();
@@ -64,6 +72,7 @@ struct Body
             transformed.push_back(Vec2::rotate(point * scale, cosTheta, sinTheta) + position);
     }
 
+    // Computes axis-aligned bounding box for the body, by calling transform.
     void calculateAABB()
     {
         if (meshID == 1000) 
@@ -90,6 +99,7 @@ struct Body
         aabb = AABB(minPos, maxPos);
     }
 
+    //Projects the transformed polygon onto `axis` and returns min/max projection.
     void projectOntoAxis(const Vec2& axis, float& mn, float& mx) const {
         mn = std::numeric_limits<float>::infinity();
         mx = -std::numeric_limits<float>::infinity();
@@ -102,7 +112,7 @@ struct Body
         }
     }
 
-
+    // Point-in-polygon test for transformed polygon
     bool contains(Vec2 point) const
     {
         if(meshID == 1000)
@@ -122,6 +132,7 @@ struct Body
         return true;
     }
 
+    // circle circle SAT collision check
     static CollisionResult circleCircle(const Body& b1, const Body& b2)
     {
         Vec2 distVec = b2.position - b1.position;
@@ -143,6 +154,7 @@ struct Body
         return res;
     } 
     
+    // circle polygon SAT collision check
     static CollisionResult circlePoly(const Body& b1, const Body& b2)
     {
         float minOverlap = std::numeric_limits<float>::infinity();
@@ -205,6 +217,8 @@ struct Body
         return res;
     }
 
+    // Sutherland–Hodgman style clipping for a segment against a half-space (n·x >= c).
+    // `pts` should contain two points (segment endpoints). After call it may contain 0,1,2 points.
     static void clip(std::vector<Vec2>& pts, const Vec2& n, float c) {
         Vec2 A = pts[0];
         Vec2 B = pts[1];
@@ -247,6 +261,7 @@ struct Body
         if (count == 2) pts.push_back(out1);
     }
 
+    // polygon polygon SAT collision check
     static CollisionResult polyPoly(const Body& b1, const Body& b2)
     {
         float minOverlap = std::numeric_limits<float>::infinity();
@@ -378,6 +393,8 @@ struct Body
         return res;
     }
 
+    // Dispatches to the correct SAT helper based on meshID.
+    // Ensures returned normal is oriented from b1 -> b2.
     static CollisionResult performSAT(const Body& b1, const Body& b2)
     {
         CollisionResult res;
@@ -399,6 +416,8 @@ struct Body
         return res;
     }
 
+    // Applies normal impulse and friction impulse to velocities and angular velocities.
+    // Uses Baumgarte-like positional correction with `corrFactor` and `slop`.
     static void resolve(Body& b1, Body& b2, const CollisionResult& res, float corrFactor = 0.40f, float slop = 0.05f)
     {   
         Vec2 corr = res.normal * corrFactor * (std::max(res.depth - slop, 0.0f) / (b1.invMass + b2.invMass));

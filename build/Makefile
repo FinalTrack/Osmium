@@ -129,30 +129,6 @@ physics/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/physics.dir/build.make CMakeFiles/physics.dir/build
 .PHONY : physics/fast
 
-src/engine/World.o: src/engine/World.cpp.o
-.PHONY : src/engine/World.o
-
-# target to build an object file
-src/engine/World.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/physics.dir/build.make CMakeFiles/physics.dir/src/engine/World.cpp.o
-.PHONY : src/engine/World.cpp.o
-
-src/engine/World.i: src/engine/World.cpp.i
-.PHONY : src/engine/World.i
-
-# target to preprocess a source file
-src/engine/World.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/physics.dir/build.make CMakeFiles/physics.dir/src/engine/World.cpp.i
-.PHONY : src/engine/World.cpp.i
-
-src/engine/World.s: src/engine/World.cpp.s
-.PHONY : src/engine/World.s
-
-# target to generate assembly for a file
-src/engine/World.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/physics.dir/build.make CMakeFiles/physics.dir/src/engine/World.cpp.s
-.PHONY : src/engine/World.cpp.s
-
 src/imgui/backends/imgui_impl_glfw.o: src/imgui/backends/imgui_impl_glfw.cpp.o
 .PHONY : src/imgui/backends/imgui_impl_glfw.o
 
@@ -330,9 +306,6 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... physics"
-	@echo "... src/engine/World.o"
-	@echo "... src/engine/World.i"
-	@echo "... src/engine/World.s"
 	@echo "... src/imgui/backends/imgui_impl_glfw.o"
 	@echo "... src/imgui/backends/imgui_impl_glfw.i"
 	@echo "... src/imgui/backends/imgui_impl_glfw.s"

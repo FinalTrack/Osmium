@@ -47,10 +47,10 @@ void renderGridLines()
         if(world.bodies[id].active != 1)
             continue;
         int lvl = world.bodies[id].level;
-        int sz = world.length >> lvl;
+        int sz = world.quad.length >> lvl;
         int cnt = 1 << lvl;
         
-        int offset = world.bodies[id].ind - world.levels[lvl];
+        int offset = world.bodies[id].ind - world.quad.levels[lvl];
         int x = offset % cnt;
         int y = offset / cnt;
 
@@ -186,7 +186,7 @@ void addObjectAtPosition(float x, float y)
     float moi = mass * r * r;
     float vx = velocityDist(rng);
     float vy = velocityDist(rng);
-    world.addObject(position, Vec2(vx, vy) * 0.0, settings.currentMesh, mass, moi, settings.scale, 0.0f, settings.restitution);
+    world.addBody(position, Vec2(vx, vy) * 0.0, settings.currentMesh, mass, moi, settings.scale, 0.0f, settings.restitution);
 }
 
 float uTime = 0.0f, cTime = 0.0f, rTime = 0.0f;
@@ -252,11 +252,11 @@ int main() {
         Vec2(-20, (HEIGHT - 100)/2),
     });
 
-    world.addObject(Vec2(WIDTH/2, HEIGHT - 105), 5, 1.0f, 0.0f, 0.2f);
-    world.addObject(Vec2(105, HEIGHT/2), 6, 1.0f, 0.0f, 0.2f);
-    world.addObject(Vec2(WIDTH-105, HEIGHT/2), 6, 1.0f, 0.0f, 0.2f);
-    world.addObject(Vec2(WIDTH/2, HEIGHT/2), 1000, 10.0f, 0.0f, 0.2f);
-    world.addObject(Vec2(260, 640), 3, 5.0f, 0.0f, 0.2f);
+    world.addBody(Vec2(WIDTH/2, HEIGHT - 105), 5, 1.0f, 0.0f, 0.2f);
+    world.addBody(Vec2(105, HEIGHT/2), 6, 1.0f, 0.0f, 0.2f);
+    world.addBody(Vec2(WIDTH-105, HEIGHT/2), 6, 1.0f, 0.0f, 0.2f);
+    world.addBody(Vec2(WIDTH/2, HEIGHT/2), 1000, 10.0f, 0.0f, 0.2f);
+    world.addBody(Vec2(260, 640), 3, 5.0f, 0.0f, 0.2f);
 
     // OpenGL version and profile settings
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -312,7 +312,7 @@ int main() {
                     if(world.bodies[i].active != 1)
                         continue;
                     if(world.bodies[i].contains(Vec2(mouseX, mouseY)))
-                        world.deleteObject(i);
+                        world.deleteBody(i);
                 }
             }
         }

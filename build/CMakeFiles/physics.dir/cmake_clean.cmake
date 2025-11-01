@@ -1,6 +1,4 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/physics.dir/src/engine/World.cpp.o"
-  "CMakeFiles/physics.dir/src/engine/World.cpp.o.d"
   "CMakeFiles/physics.dir/src/imgui/backends/imgui_impl_glfw.cpp.o"
   "CMakeFiles/physics.dir/src/imgui/backends/imgui_impl_glfw.cpp.o.d"
   "CMakeFiles/physics.dir/src/imgui/backends/imgui_impl_opengl3.cpp.o"

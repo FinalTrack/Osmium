@@ -8,7 +8,6 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/home/adsultimate/Osmium/src/engine/World.cpp" "CMakeFiles/physics.dir/src/engine/World.cpp.o" "gcc" "CMakeFiles/physics.dir/src/engine/World.cpp.o.d"
   "/home/adsultimate/Osmium/src/imgui/backends/imgui_impl_glfw.cpp" "CMakeFiles/physics.dir/src/imgui/backends/imgui_impl_glfw.cpp.o" "gcc" "CMakeFiles/physics.dir/src/imgui/backends/imgui_impl_glfw.cpp.o.d"
   "/home/adsultimate/Osmium/src/imgui/backends/imgui_impl_opengl3.cpp" "CMakeFiles/physics.dir/src/imgui/backends/imgui_impl_opengl3.cpp.o" "gcc" "CMakeFiles/physics.dir/src/imgui/backends/imgui_impl_opengl3.cpp.o.d"
   "/home/adsultimate/Osmium/src/imgui/imgui.cpp" "CMakeFiles/physics.dir/src/imgui/imgui.cpp.o" "gcc" "CMakeFiles/physics.dir/src/imgui/imgui.cpp.o.d"
